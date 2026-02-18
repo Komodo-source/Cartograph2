@@ -3,6 +3,7 @@ import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 
 const ITEMS = [
   { label: 'SOLDAT', route: 'CreationPerso' },
+  { label: 'MAP', route: 'MainMap' },
   { label: 'DEBUG', route: 'DebbugPerso' },
 ];
 

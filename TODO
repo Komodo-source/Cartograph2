@@ -1,0 +1,19 @@
+- display sur la carteles zones capturés par qui
+  - pour chaque zone le nom du joueur
+  - sa faction
+  - et peut etre un court message
+
+- systeme de niveau d'xp
+- système d'or
+- système de pvp
+- auth avec persistence
+- faction
+  - chat de faction
+  - rang social faction
+- leaderboard
+  - leaderboard d'equipe
+  - leaderboard faction
+  - leaderboard joueur
+- evenement temporaire
+- structure spécifique
+
