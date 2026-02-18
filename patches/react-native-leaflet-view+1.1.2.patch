@@ -1,0 +1,13 @@
+diff --git a/node_modules/react-native-leaflet-view/lib/module/LeafletView/index.js b/node_modules/react-native-leaflet-view/lib/module/LeafletView/index.js
+index dac2928..7c49a94 100644
+--- a/node_modules/react-native-leaflet-view/lib/module/LeafletView/index.js
++++ b/node_modules/react-native-leaflet-view/lib/module/LeafletView/index.js
+@@ -4,7 +4,7 @@ import { WebViewLeafletEvents, OWN_POSTION_MARKER_ID } from './types';
+ import { Platform, StyleSheet } from 'react-native';
+ import LoadingIndicator from '../LoadingIndicator';
+ const LEAFLET_HTML_SOURCE = Platform.select({
+-  ios: require('../../android/src/main/assets/leaflet.html'),
++  ios: require('../../../android/src/main/assets/leaflet.html'),
+   android: {
+     uri: 'file:///android_asset/leaflet.html'
+   }
