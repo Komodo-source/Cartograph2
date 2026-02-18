@@ -5,8 +5,8 @@ import Navbar from '../components/Navbar';
 import * as FM from '../util/file-manager';
 
 const DEFAULT_LOCATION = { // a def dans un fichier pour la récup
-  latitude: -23.5489,
-  longitude: -46.6388,
+  latitude: 48.8666,
+  longitude: 2.3333,
 };
 
 const FACTION_COLORS = {
