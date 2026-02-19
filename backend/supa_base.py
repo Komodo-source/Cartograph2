@@ -11,7 +11,7 @@ lst_permanents = ["Nexus central", "Relais logique", "Extracteur d'Éther",
 
 lst_temp = ["Balise de stabilisation", "Catalyseur", "Balise d'expansion"]
 
-nb_bat = 1
+nb_bat = 20
 lat = (48.5000, 49.6000)
 lng = (2.3333 ,2.4444)
 

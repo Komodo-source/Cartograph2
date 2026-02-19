@@ -75,13 +75,13 @@ const DebbugPerso = ({ navigation }) => {
         <View style={styles.presetRow}>
           <TouchableOpacity
             style={styles.presetBtn}
-            onPress={() => handleFill({ IdJoueur: 'debug-0001', Nickname: 'DEBUG', OrJoueur: 500, xpJoueur: 1200, NiveauJoueur: 3, NbZoneCapturee: 7, IdFaction: 'ROUGE', IdClasse: 'vanguard' })}
+            onPress={() => handleFill({ IdJoueur: '2', Nickname: 'DEBUG', OrJoueur: 500, xpJoueur: 1200, NiveauJoueur: 3, NbZoneCapturee: 7, IdFaction: 'ROUGE', IdClasse: 'vanguard' })}
           >
             <Text style={styles.presetText}>ROUGE / VANGUARD</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.presetBtn}
-            onPress={() => handleFill({ IdJoueur: 'debug-0002', Nickname: 'TEST', OrJoueur: 200, xpJoueur: 300, NiveauJoueur: 1, NbZoneCapturee: 2, IdFaction: 'BLEU', IdClasse: 'saboteur' })}
+            onPress={() => handleFill({ IdJoueur: '1', Nickname: 'TEST', OrJoueur: 200, xpJoueur: 300, NiveauJoueur: 1, NbZoneCapturee: 2, IdFaction: 'BLEU', IdClasse: 'saboteur' })}
           >
             <Text style={styles.presetText}>BLEU / SABOTEUR</Text>
           </TouchableOpacity>

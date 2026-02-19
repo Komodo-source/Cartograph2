@@ -1,11 +1,33 @@
-import React, { useRef, useState } from 'react';
-import { View, StyleSheet, Modal, TouchableOpacity, Text } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  Alert,
+  Image,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { WebView } from 'react-native-webview';
+import { supabase } from '../util/supabase';
+import * as fm from '../util/file-manager';
 
-const LeafletMap = ({ latitude = 48.86666, longitude = 2.333333, selectable = false, onLocationChange, onMapTouchStart, onMapTouchEnd }) => {
+const LeafletMap = ({
+  latitude = 48.86666,
+  longitude = 2.333333,
+  selectable = false,
+  onLocationChange,
+  onMapTouchStart,
+  onMapTouchEnd,
+}) => {
   const webViewRef = useRef(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [hexTouched, setHexTouched] = useState(null);
+  const [structure, setStruct] = useState([]);
+  const [PointAncrage, setPointAncrage] = useState({});
+  const [mapLoaded, setMapLoaded] = useState(false);
+
+  const structIconUri = Image.resolveAssetSource(require('../assets/testStruct.png')).uri;
 
   const leafletHTML = `
       <!DOCTYPE html>
@@ -46,7 +68,7 @@ const LeafletMap = ({ latitude = 48.86666, longitude = 2.333333, selectable = fa
       }
 
       function spawnHex(lat, lng) {
-        var size = 0.0005;
+        var size = 0.0008;
         var id = getHexId(lat, lng);
 
         if (!influence[id]) influence[id] = { red: 0, blue: 0 };
@@ -70,7 +92,7 @@ const LeafletMap = ({ latitude = 48.86666, longitude = 2.333333, selectable = fa
       }
 
       function generateGrid(centerLat, centerLng) {
-        var offset = 0.001;
+        var offset = 0.002;
         for (var x = -3; x <= 3; x++) {
           for (var y = -3; y <= 3; y++) {
             spawnHex(centerLat + x * offset, centerLng + y * offset);
@@ -91,31 +113,161 @@ const LeafletMap = ({ latitude = 48.86666, longitude = 2.333333, selectable = fa
       </html>
   `;
 
+  {
+    /* server side function */
+  }
+  const getStructure = async () => {
+    try {
+      const { data, error } = await supabase.from('pointimportant').select('*');
+
+      if (error) {
+        console.log('getStructure error', error);
+      } else {
+        console.log('getStructure ok', data);
+        setStruct(data);
+      }
+    } catch (e) {
+      console.log('getStructure exception', e);
+    }
+  };
+
+  const getPointAncrage = async () => {
+    try {
+      const { data, error } = await supabase.from('pointancrage').select('*');
+
+      if (error) {
+        console.log('getPointAncrage error', error);
+      } else {
+        console.log('getPointAncrage ok', data);
+        setPointAncrage(data);
+      }
+    } catch (e) {
+      console.log('getPointAncrage exception', e);
+    }
+  };
+
   const handleMessage = (event) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
-      if (data.type === "HEX_TOUCHED") {
+      if (data.type === 'HEX_TOUCHED') {
         handleHexTouch(data);
       }
     } catch (e) {}
   };
 
-  const start_capture = (hexData) => {
+
+
+  const start_capture = async (hexData) => {
     // TODO:
     // - retirer de l'or
     // - ajouter l'xp
     // - mettre en période de vulnérabilité aléatoire
     // - envoyer à la BD
     // - update les infos locales
-    console.log("Capture lancée sur:", hexData);
-    setModalVisible(false);
+
+    const zoneId = hexData.id;
+    let { data: zone } = await supabase
+      .from('zone')
+      .select('*')
+      .eq('IdZone', zoneId)
+      .single();
+
+    if (!zone) {
+      await supabase.from('zone').insert([
+        {
+          IdZone: zoneId,
+          center_lat: hexData.lat,
+          center_lng: hexData.lng,
+          influenceRouge: 0,
+          influenceBleu: 0,
+        },
+      ]);
+    }
+
+    const { data: existing } = await supabase
+      .from('pointancrage')
+      .select('*')
+      .eq('IdZone', zoneId)
+      .single();
+
+    if (existing) {
+      Alert.alert('Zone occupée');
+      return;
+    }
+    /*
+    const local_data = await fm.read_file("character.json");
+    if(local_data.OrJoueur < 20){
+      Alert.alert("Or", "Pas assez d'or");
+      return ;
+    }*/
+
+    await supabase
+      .from('joueur')
+      .update({
+        OrJoueur: local_data.OrJoueur - 20,
+        xp: local_data.xp + 20,
+      })
+      .eq('IdJoueur', local_data.IdJoueur);
+
+    await supabase.from('pointancrage').insert([
+      {
+        IdJoueur: local_data.IdJoueur,
+        IdZone: zoneId,
+        pv: 100,
+        dateInstallation: new Date().toISOString(),
+        dateVulnerable: new Date(
+          Date.now() + Math.random() * 7200000,
+        ).toISOString(),
+      },
+    ]);
+    await supabase
+      .from('zone')
+      .update({
+        influenceRouge: zone.influenceRouge + 10,
+      })
+      .eq('IdZone', zoneId);
+
+    webViewRef.current.postMessage(
+      JSON.stringify({
+        type: 'REFRESH_ZONE',
+        zoneId: zoneId,
+      }),
+    );
+  };
+
+  const placeStruct = (data) => {
+    const js = `
+      var structIcon = L.icon({
+        iconUrl: '${structIconUri}',
+        iconSize: [40, 40],
+        iconAnchor: [20, 40],
+      });
+      var points = ${JSON.stringify(data)};
+      points.forEach(function(point) {
+        L.marker([point.latitude, point.longitude], { icon: structIcon })
+          .addTo(map)
+          .bindPopup(point.nompointimportant);
+      });
+      true;
+    `;
+    webViewRef.current?.injectJavaScript(js);
   };
 
   const handleHexTouch = (hexData) => {
-    console.log("Hex touché:", hexData);
+    console.log('Hex touché:', hexData);
     setHexTouched(hexData);
     setModalVisible(true);
   };
+
+  useEffect(() => {
+    getStructure();
+  }, []);
+
+  useEffect(() => {
+    if (mapLoaded && structure.length > 0) {
+      placeStruct(structure);
+    }
+  }, [mapLoaded, structure]);
 
   return (
     <View style={styles.container}>
@@ -130,7 +282,6 @@ const LeafletMap = ({ latitude = 48.86666, longitude = 2.333333, selectable = fa
             <View style={styles.modalCard}>
               <View style={styles.modalAccent} />
               <View style={styles.modalInner}>
-
                 <Text style={styles.modalHeader}>// ZONE</Text>
                 <Text style={styles.modalTitle}>PT. DE CONTROLE</Text>
                 <Text style={styles.modalCoords}>
@@ -156,10 +307,10 @@ const LeafletMap = ({ latitude = 48.86666, longitude = 2.333333, selectable = fa
 
                 <View style={styles.influenceRow}>
                   <Text style={styles.redText}>
-                    ROUGE  {hexTouched.influence?.red ?? 0}
+                    ROUGE {hexTouched.influence?.red ?? 0}
                   </Text>
                   <Text style={styles.blueText}>
-                    BLEU  {hexTouched.influence?.blue ?? 0}
+                    BLEU {hexTouched.influence?.blue ?? 0}
                   </Text>
                 </View>
 
@@ -177,7 +328,6 @@ const LeafletMap = ({ latitude = 48.86666, longitude = 2.333333, selectable = fa
                     <Text style={styles.btnCancelText}>FERMER</Text>
                   </TouchableOpacity>
                 </View>
-
               </View>
             </View>
           )}
@@ -186,7 +336,7 @@ const LeafletMap = ({ latitude = 48.86666, longitude = 2.333333, selectable = fa
 
       <WebView
         ref={webViewRef}
-        originWhitelist={["*"]}
+        originWhitelist={['*']}
         source={{ html: leafletHTML }}
         style={{ flex: 1, borderRadius: 12, overflow: 'hidden' }}
         javaScriptEnabled={true}
@@ -195,6 +345,7 @@ const LeafletMap = ({ latitude = 48.86666, longitude = 2.333333, selectable = fa
         scrollEnabled={true}
         automaticallyAdjustContentInsets={false}
         mixedContentMode="always"
+        onLoad={() => setMapLoaded(true)}
         onTouchStart={onMapTouchStart}
         onTouchEnd={onMapTouchEnd}
       />
